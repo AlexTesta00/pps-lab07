@@ -42,6 +42,45 @@ class LoggingRobot(val robot: Robot) extends Robot:
     robot.act()
     println(robot.toString)
 
+class RobotWithBattery(val robot: Robot, initialBattery: Int, costPerAction: Int) extends Robot:
+  require(initialBattery >= 0, "Initial battery level must be non-negative")
+  require(costPerAction > 0, "Cost per action must be positive")
+
+  private var currentBattery = initialBattery
+
+  def batteryLevel: Int = currentBattery
+
+  export robot.{position, direction, turn}
+
+    override def act(): Unit =
+      if currentBattery > 0 then {
+        robot.act()
+        currentBattery = math.max(0, currentBattery - costPerAction)
+      }
+
+  override def toString: String = s"${robot.toString} (battery=$currentBattery)"
+
+class RobotCanFail(val robot: Robot, failureProbability: Double) extends Robot:
+  require(failureProbability >= 0.0 && failureProbability <= 1.0, "Failure probability must be between 0 and 1")
+
+  export robot.{position, direction, turn}
+
+  override def act(): Unit =
+    val failed = scala.util.Random.nextDouble() < failureProbability
+    if !failed then robot.act()
+
+  override def toString: String = s"${robot.toString} (failure probability=$failureProbability)"
+
+class RobotRepeated(val robot: Robot, times: Int) extends Robot:
+
+  require(times >= 0, "times must be non-negative")
+
+  export robot.{position, direction, turn}
+
+  override def act(): Unit = for _ <- 1 to times do robot.act()
+
+  override def toString: String = s"${robot.toString} (repeated=$times)"
+
 @main def testRobot(): Unit =
   val robot = LoggingRobot(SimpleRobot((0, 0), Direction.North))
   robot.act() // robot at (0, 1) facing North
